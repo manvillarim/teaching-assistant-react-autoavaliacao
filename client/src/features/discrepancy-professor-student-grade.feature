@@ -11,8 +11,11 @@ Feature: Discrepancy between self-assessment and professor grades
   - the discrepancy of a student is the sum of the divergences of the considered goals
   - a student is discrepant when the discrepancy is greater than the discrepancy threshold of the class
   - the percentage of discrepant students is computed over the students whose discrepancy could be computed
+  - the discrepancy threshold of a class is an integer from 0 to 2
 
   In the grade tables, a goal that does not appear has no grade, and "-" means no grade.
+
+  The discrepancies are shown in the "Evaluations" page of the class, above the table of grades.
 
   # GUI scenarios
 
@@ -29,7 +32,7 @@ Feature: Discrepancy between self-assessment and professor grades
       | Carlos Lima   | MANA                   | MANA            | MA                           | MA                    |
       | Beatriz Souza | MA                     | MPA             | MA                           | MPA                   |
       | Rafael Costa  | MPA                    | MANA            | MA                           | MPA                   |
-    When I open the "Discrepancies" page of the class "ESS (2026/2)"
+    When I open the "Evaluations" page of the class "ESS (2026/2)"
     Then I see the discrepant students, in this order:
       | student      | discrepancy |
       | Carlos Lima  | 4           |
@@ -47,7 +50,7 @@ Feature: Discrepancy between self-assessment and professor grades
       | student      | professor Requirements | professor Tests | self-assessment Requirements | self-assessment Tests |
       | João Pereira | MPA                    | MANA            | MA                           | MPA                   |
       | Maria Alves  | MANA                   | MPA             | MA                           | MA                    |
-    When I open the "Discrepancies" page of the class "ESS (2026/2)"
+    When I open the "Evaluations" page of the class "ESS (2026/2)"
     Then I see the discrepant students, in this order:
       | student     | discrepancy |
       | Maria Alves | 3           |
@@ -64,7 +67,7 @@ Feature: Discrepancy between self-assessment and professor grades
       | student       | professor Requirements | professor Tests | self-assessment Requirements | self-assessment Tests |
       | Ana Ribeiro   | MA                     | MPA             | MA                           | MA                    |
       | Bruno Tavares | MPA                    | MPA             | MPA                          | MPA                   |
-    When I open the "Discrepancies" page of the class "ESS (2026/2)"
+    When I open the "Evaluations" page of the class "ESS (2026/2)"
     Then I see the message "The class has no discrepant students"
     And I see "0" of "2" students as discrepant, which is "0%"
 
@@ -81,7 +84,7 @@ Feature: Discrepancy between self-assessment and professor grades
       | Carlos Lima | MANA                   | MANA            | MA                           | MA                    |
       | Maria Alves | -                      | -               | MA                           | MA                    |
       | Lucas Rocha | MPA                    | MPA             | -                            | -                     |
-    When I open the "Discrepancies" page of the class "ESS (2026/2)"
+    When I open the "Evaluations" page of the class "ESS (2026/2)"
     Then I see the discrepant students, in this order:
       | student     | discrepancy |
       | Carlos Lima | 4           |
@@ -102,12 +105,29 @@ Feature: Discrepancy between self-assessment and professor grades
       | student     | professor Requirements | professor Tests | self-assessment Requirements | self-assessment Tests |
       | Pedro Melo  | MPA                    | MPA             | MA                           | MA                    |
       | Ana Ribeiro | MA                     | MA              | MA                           | MA                    |
-    And I am at the "Discrepancies" page of the class "ESS (2026/2)"
+    And I am at the "Evaluations" page of the class "ESS (2026/2)"
     When I change the discrepancy threshold to "1"
     Then I see the discrepancy threshold "1"
     And I see the discrepant students, in this order:
       | student    | discrepancy |
       | Pedro Melo | 2           |
+
+  @gui
+  Scenario: changing a professor grade updates the discrepancies
+    Given the discrepancy threshold of the class "ESS (2026/2)" is "1"
+    And the class "ESS (2026/2)" has only the following students:
+      | student    |
+      | Pedro Melo |
+    And the class "ESS (2026/2)" has the following grades:
+      | student    | professor Requirements | professor Tests | self-assessment Requirements | self-assessment Tests |
+      | Pedro Melo | MPA                    | MPA             | MA                           | MA                    |
+    And I am at the "Evaluations" page of the class "ESS (2026/2)"
+    And I see the discrepant students, in this order:
+      | student    | discrepancy |
+      | Pedro Melo | 2           |
+    When I assign the professor grade "MA" to the goal "Requirements" of the student "Pedro Melo"
+    Then I see the message "The class has no discrepant students"
+    And I see "0" of "1" students as discrepant, which is "0%"
 
   # Service scenarios
 
@@ -137,6 +157,13 @@ Feature: Discrepancy between self-assessment and professor grades
     Given the discrepancy threshold of the class "ESS (2026/2)" is "2"
     When I request to change the discrepancy threshold of the class "ESS (2026/2)" to "-1"
     Then the system returns the error "The threshold must be a non-negative integer"
+    And the system stores the discrepancy threshold "2" for the class "ESS (2026/2)"
+
+  @server
+  Scenario: reject a discrepancy threshold above the maximum
+    Given the discrepancy threshold of the class "ESS (2026/2)" is "2"
+    When I request to change the discrepancy threshold of the class "ESS (2026/2)" to "3"
+    Then the system returns the error "The threshold must be at most 2"
     And the system stores the discrepancy threshold "2" for the class "ESS (2026/2)"
 
   @server
